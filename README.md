@@ -1,4 +1,6 @@
 # httpdump
+## introduction
+
 **a simple tool for dump http packets**, you may use it to detect and protect your sensitive data in a production environment especially read flow from switch.
 
 it supports simple http network flow in http1.0/http1.1.
@@ -9,6 +11,8 @@ this is a first go project for me, so maybe it's not such graceful, if you have 
 
 
 
+## document
+
 the way to use it :
 
 `httpChan := httpdump.DumpIf(ifName)`
@@ -16,6 +20,8 @@ the way to use it :
 you may like to have an **example** in [test_dump.go](https://github.com/YoungCoderAliang/httpdump/blob/main/test_dump.go)
 
 
+
+## hello
 
 if you have any good idea just let me know
 
