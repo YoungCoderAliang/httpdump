@@ -19,10 +19,10 @@ import (
 )
 
 type TcpChannel struct {
-	srcIP   string
-	dstIP   string
-	srcPort layers.TCPPort
-	dstPort layers.TCPPort
+	SrcIP   string
+	DstIP   string
+	SrcPort layers.TCPPort
+	DstPort layers.TCPPort
 }
 
 type TcpTask struct {
@@ -42,9 +42,9 @@ type HttpCache struct {
 }
 
 type HttpPacket struct {
-	ch  TcpChannel
-	req *http.Request
-	res *http.Response
+	Ch  TcpChannel
+	Req *http.Request
+	Res *http.Response
 }
 
 // support : simple network flow in http 1.0 / http 1.1
@@ -122,8 +122,11 @@ func httpPacketCollector(id int, tasks chan TcpTask, httpChan chan HttpPacket) {
 					}
 				}
 				httpCache.resList = addAndSortPacket(httpCache.resSeqMap, httpCache.resList, tcpTask)
-				if httpEnd(httpCache) {
-					fmt.Println("http ends ", ch)
+				// if stopMerge(httpCache) {
+				// 	delete(tcpCache, ch)
+				// }
+				if textHttpEnd(httpCache) {
+					// fmt.Println("http ends ", ch)
 					httpPacket := transferHttpPacket(httpCache, ch)
 					if httpPacket != nil {
 						httpChan <- *httpPacket
@@ -132,7 +135,7 @@ func httpPacketCollector(id int, tasks chan TcpTask, httpChan chan HttpPacket) {
 				}
 			}
 			if ok && tcpTask.tcp.FIN {
-				fmt.Println("fin detected :", ch)
+				// fmt.Println("fin detected :", ch)
 				delete(tcpCache, ch)
 				continue
 			}
@@ -158,7 +161,62 @@ func httpPacketCollector(id int, tasks chan TcpTask, httpChan chan HttpPacket) {
 	}
 }
 
-func httpEnd(httpCache *HttpCache) bool {
+// if you don't want handle no text http , then use it
+func stopMerge(httpCache *HttpCache) bool {
+	var LF byte = 0x0A
+	var CR byte = 0x0D
+	// CRLF := []byte{CR, LF}
+	// var COLON byte = ':'
+	// var TAB byte = 0x09
+	// var SPACE byte = 0x20
+
+	resBytes := merge(httpCache.resList)
+	var headerEnd int = 0
+	var lines []string = []string{}
+	for id, bt := range resBytes {
+		if id >= 3 && bt == LF && resBytes[id-1] == CR && resBytes[id-2] == LF && resBytes[id-3] == CR {
+			headerEnd = id
+			before := string(resBytes[:id-3])
+			lines = strings.Split(before, "\r\n")
+			break
+		}
+	}
+	if headerEnd == 0 {
+		return false
+	}
+	var contentType string = ""
+	for _, line := range lines {
+		if strings.HasPrefix(line, "Content-Type: ") {
+			contentType = line[14:]
+			break
+		}
+	}
+	if contentType == "" {
+		return false
+	}
+	return !IsTxtContent(contentType)
+}
+
+func IsTxtContent(contentType string) bool {
+	if strings.HasPrefix(contentType, "text") {
+		return true
+	}
+	if strings.HasPrefix(contentType, "application") {
+		if strings.Contains(contentType, "+xml") {
+			return true
+		}
+	}
+	txtType := []string{"application/json", "application/ecmascript", "application/javascript", "application/x-www-form-urlencoded", "multipart/form-data"}
+
+	for i := 0; i < len(txtType); i++ {
+		if strings.Compare(txtType[i], contentType) == 0 {
+			return true
+		}
+	}
+	return false
+}
+
+func textHttpEnd(httpCache *HttpCache) bool {
 	var LF byte = 0x0A
 	var CR byte = 0x0D
 	// CRLF := []byte{CR, LF}
@@ -196,7 +254,11 @@ func httpEnd(httpCache *HttpCache) bool {
 	if contentLengh == 0 {
 		return true
 	}
-	return len(resBytes)-headerEnd-1 >= contentLengh
+	alreadyBytes := resBytes[headerEnd+1:]
+	// http content-length means bytes amount
+	// alreadyContent := string(resBytes[headerEnd+1:])
+	// alreadyUtf8Length := utf8.RuneCountInString(alreadyContent)
+	return len(alreadyBytes) >= contentLengh
 }
 
 func addAndSortPacket(seqMap map[uint32]bool, packetList []TcpTask, tcpTask TcpTask) []TcpTask {
