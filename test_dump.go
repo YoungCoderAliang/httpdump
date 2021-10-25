@@ -34,18 +34,18 @@ func TestDump(t *testing.T) {
 		fmt.Println(times, time.Now())
 		times++
 
-		fmt.Printf("\n%s:%d -> %s:%d", httpPak.ch.srcIP, httpPak.ch.srcPort, httpPak.ch.dstIP, httpPak.ch.dstPort)
-		fmt.Printf("\nrequest :\n%s http://%s%s\n", httpPak.req.Method, httpPak.req.Host, httpPak.req.URL)
+		fmt.Printf("\n%s:%d -> %s:%d", httpPak.Ch.SrcIP, httpPak.Ch.SrcPort, httpPak.Ch.DstIP, httpPak.Ch.DstPort)
+		fmt.Printf("\nrequest :\n%s http://%s%s\n", httpPak.Req.Method, httpPak.Req.Host, httpPak.Req.URL)
 		fmt.Println("\nrequest header :")
-		for k, v := range httpPak.req.Header {
+		for k, v := range httpPak.Req.Header {
 			fmt.Println(k, ":", v)
 		}
-		fmt.Println("\nrequest body :\n", reader2String(httpPak.req.Body))
+		fmt.Println("\nrequest body :\n", reader2String(httpPak.Req.Body))
 		fmt.Println("\nresponse header :")
-		for k, v := range httpPak.res.Header {
+		for k, v := range httpPak.Res.Header {
 			fmt.Println(k, ":", v)
 		}
-		fmt.Println("\nresponse body :\n", reader2String(httpPak.res.Body))
+		fmt.Println("\nresponse body :\n", reader2String(httpPak.Res.Body))
 		fmt.Println("\n ************ ")
 	}
 	fmt.Println(time.Since(start))
